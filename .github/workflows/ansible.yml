@@ -4,15 +4,15 @@ on:
   schedule:
     - cron: '0 2 * * 0' # Run every Sunday at 2 AM
   workflow_dispatch: # Allow manual triggers
+  push:
+    branches:
+      - main
 
 jobs:
   ansible-playbook-run:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
-
-      - name: Connect to Tailscale
+      - name: Connect Tailscale
         uses: tailscale/github-action@v2
         with:
           authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
@@ -25,7 +25,51 @@ jobs:
           MACHINE_IP=$(tailscale ip -4 proxmox)
           echo "MACHINE_IP=$MACHINE_IP" >> $GITHUB_ENV
 
-      - name: Run Ansible Playbook
-        run: /usr/bin/ansible-playbook ~/.ansible/playbook.yml --vault-password-file ~/.ansible_vault_pass -i ${{ env.MACHINE_IP }},
+      - name: Run Ansible Playbook on Server via SSH
+        run: |
+          ssh -o StrictHostKeyChecking=no root@${{ env.MACHINE_IP }} << 'EOF'
+            # Check if git is installed, if not install it
+            if ! command -v git &> /dev/null; then
+              echo 'git is not installed. Installing git...'
+              apt update && apt install -y git
+            fi
+
+            # Check if the .ansible directory exists
+            if [ -d ~/.ansible ]; then
+              echo 'Repository exists. Checking if it is a valid git repository...'
+              cd ~/.ansible
+
+              # Check if the directory is a valid git repository
+              if [ ! -d .git ]; then
+                echo 'Directory exists but is not a git repository. Initializing git...'
+                git init # Initialize the directory as a git repository
+                git remote add origin git@github.com:brandonjurado/ansible.git
+              fi
+
+              # If it's a git repo, ensure it has the correct remote and pull the latest changes
+              echo 'Directory is a valid git repository. Checking remote...'
+              if ! git remote | grep origin &> /dev/null; then
+                echo 'No remote origin found. Adding remote...'
+                git remote add origin git@github.com:brandonjurado/ansible.git
+              fi
+
+              # Fetch the latest changes and update the branch
+              echo 'Fetching and pulling the latest changes...'
+              git fetch origin
+              git branch --set-upstream-to=origin/main main || git checkout -b main origin/main
+              git pull
+
+              # Ensure the local branch is tracking the correct remote branch
+              git fetch origin
+              git branch --set-upstream-to=origin/main main || git checkout -b main origin/main
+            else
+              echo 'Cloning the repository...'
+              git clone git@github.com:brandonjurado/ansible.git ~/.ansible
+            fi
+
+            # Navigate to the repo and run the ansible playbook
+            cd ~/.ansible && \
+            ansible-playbook playbook.yml --vault-password-file ~/.ansible_vault_pass
+          EOF
         env:
           ANSIBLE_HOST_KEY_CHECKING: 'False'

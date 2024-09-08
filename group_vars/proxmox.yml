@@ -3,8 +3,8 @@ update_schedule: "weekly"
 backup_location: "/mnt/backup"
 
 lxc_containers:
-  - plex
-  - overseerr
-  - sonarr
-  - radarr
-  - tautulli
+  plex: 101
+  overseerr: 102
+  sonarr: 103
+  radarr: 104
+  tautulli: 106

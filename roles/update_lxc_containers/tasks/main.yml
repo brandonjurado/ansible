@@ -1,18 +1,26 @@
-- name: Update APT cache inside LXC container
-  command: pct exec {{ item }} -- apt update
-  loop: "{{ lxc_containers }}"
+- name: Update APT cache inside LXC container {{ item.key }}
+  command: pct exec {{ item.value }} -- apt update
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
-- name: Upgrade specified packages inside LXC container
-  command: pct exec {{ item }} -- apt -y upgrade
-  loop: "{{ lxc_containers }}"
+- name: Upgrade specified packages inside LXC container {{ item.key }}
+  command: pct exec {{ item.value }} -- apt -y upgrade
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
-- name: Clean up unnecessary packages inside LXC container
-  command: pct exec {{ item }} -- apt -y autoremove && apt autoclean
-  loop: "{{ lxc_containers }}"
+- name: Clean up unnecessary packages inside LXC container {{ item.key }}
+  command: pct exec {{ item.value }} -- apt -y autoremove && apt autoclean
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
 - name: Ensure services are running inside LXC container
-  command: pct exec {{ item }} -- systemctl is-active {{ item }} || systemctl start {{ item }}
-  loop: "{{ lxc_containers }}"
+  command: pct exec {{ item.value }} -- systemctl is-active {{ item.key }} || systemctl start {{ item.key }}
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
 # Full System Upgrade Logic
 - name: Get the current date
@@ -20,11 +28,13 @@
   register: current_day
 
 - name: Perform full system upgrade if today is the first day of the month
-  command: pct exec {{ item }} -- apt -y dist-upgrade && apt autoremove
+  command: pct exec {{ item.value }} -- apt -y dist-upgrade && apt autoremove
   when: current_day.stdout == "01"
   retries: 3
   delay: 5
-  loop: "{{ lxc_containers }}"
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
 
 # Add the cron job for Plex cache cleanup
 - name: Ensure Plex cache cleanup cron job is present

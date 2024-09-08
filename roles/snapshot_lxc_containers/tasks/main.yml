@@ -1,3 +1,5 @@
-- name: Take snapshot of {{ item }}
-  command: pct snapshot {{ item }} pre_update
-  loop: "{{ lxc_containers }}"
+- name: Take snapshot of {{ item.key }}
+  command: pct snapshot {{ item.value }} pre_update
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"

@@ -1,0 +1,31 @@
+name: Ansible Playbook Run
+
+on:
+  schedule:
+    - cron: '0 2 * * 0' # Run every Sunday at 2 AM
+  workflow_dispatch: # Allow manual triggers
+
+jobs:
+  ansible-playbook-run:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Connect to Tailscale
+        uses: tailscale/github-action@v2
+        with:
+          authkey: ${{ secrets.TAILSCALE_AUTHKEY }}
+          tags: tag:ci 
+          version: 	1.72.1
+
+      - name: Get Tailscale Machine IP
+        id: tailscale-ip
+        run: |
+          MACHINE_IP=$(tailscale ip -4 proxmox)
+          echo "MACHINE_IP=$MACHINE_IP" >> $GITHUB_ENV
+
+      - name: Run Ansible Playbook
+        run: /usr/bin/ansible-playbook ~/.ansible/playbook.yml --vault-password-file ~/.ansible_vault_pass -i ${{ env.MACHINE_IP }},
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: 'False'

@@ -1,0 +1,5 @@
+- name: Restart {{ item }} service
+  service:
+    name: "{{ item }}"
+    state: restarted
+  loop: "{{ lxc_containers }}"

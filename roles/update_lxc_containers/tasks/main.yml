@@ -1,0 +1,48 @@
+- name: Update APT cache
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Upgrade specified packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+  loop: "{{ lxc_containers }}"
+  retries: 3
+  delay: 5
+  until: result is succeeded
+
+- name: Clean up unnecessary packages
+  apt:
+    autoclean: yes
+    autoremove: yes
+
+- name: Ensure services are running
+  service:
+    name: "{{ item }}"
+    state: started
+  loop: "{{ lxc_containers }}"
+
+# Full System Upgrade Logic
+- name: Get the current date
+  command: date +%d
+  register: current_day
+
+- name: Perform full system upgrade if today is the first day of the month
+  apt:
+    upgrade: dist
+    autoremove: yes
+  when: current_day.stdout == "01"
+  retries: 3
+  delay: 5
+  until: result is succeeded
+
+# Add the cron job for Plex cache cleanup
+- name: Ensure Plex cache cleanup cron job is present
+  cron:
+    name: "Plex Cache Cleanup"
+    minute: "0"
+    hour: "2"
+    job: "rm -rf /var/lib/plexmediaserver/Library/Application\\ Support/Plex\\ Media\\ Server/Cache/*"
+    user: root
+  delegate_to: "{{ plex_container_hostname }}"

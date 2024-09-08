@@ -1,6 +1,2 @@
-[lxc_containers]
-plex ansible_host={{ plex_ip }} ansible_user={{ ansible_user }}
-overseerr ansible_host={{ overseerr_ip }} ansible_user={{ ansible_user }}
-sonarr ansible_host={{ sonarr_ip }} ansible_user={{ ansible_user }}
-radarr ansible_host={{ radarr_ip }} ansible_user={{ ansible_user }}
-tautulli ansible_host={{ tautulli_ip }} ansible_user={{ ansible_user }}
+[proxmox]
+localhost ansible_connection=local

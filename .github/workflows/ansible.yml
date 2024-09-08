@@ -69,7 +69,7 @@ jobs:
 
             # Navigate to the repo and run the ansible playbook
             cd ~/.ansible && \
-            ansible-playbook playbook.yml --vault-password-file ~/.ansible_vault_pass
+            ansible-playbook playbook.yml --vault-password-file ~/.ansible_vault_pass -e "machine_ip=${{ env.MACHINE_IP }}"
           EOF
         env:
           ANSIBLE_HOST_KEY_CHECKING: 'False'

@@ -1,3 +1,3 @@
 - name: Take snapshot of {{ item }}
-  command: lxc-snapshot -n {{ item }} -s pre_update
+  command: pct snapshot {{ item }} pre_update
   loop: "{{ lxc_containers }}"

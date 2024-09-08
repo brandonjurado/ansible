@@ -1,4 +1,4 @@
-- hosts: lxc_containers
+- hosts: proxmox
   vars_files:
     - vault.yml
   roles:
@@ -20,5 +20,6 @@
       when: ansible_failed_result is defined
 
     - name: Rollback to previous snapshot on failure
-      command: lxc-snapshot -r {{ inventory_hostname }} pre_update
+      command: pct snapshot {{ item }} rollback pre_update
       when: ansible_failed_result is defined
+      loop: "{{ lxc_containers }}"

@@ -1,26 +1,17 @@
-- name: Update APT cache
-  apt:
-    update_cache: yes
-    cache_valid_time: 3600
-
-- name: Upgrade specified packages
-  apt:
-    name: "{{ item }}"
-    state: latest
+- name: Update APT cache inside LXC container
+  command: pct exec {{ item }} -- apt update
   loop: "{{ lxc_containers }}"
-  retries: 3
-  delay: 5
-  until: result is succeeded
 
-- name: Clean up unnecessary packages
-  apt:
-    autoclean: yes
-    autoremove: yes
+- name: Upgrade specified packages inside LXC container
+  command: pct exec {{ item }} -- apt -y upgrade
+  loop: "{{ lxc_containers }}"
 
-- name: Ensure services are running
-  service:
-    name: "{{ item }}"
-    state: started
+- name: Clean up unnecessary packages inside LXC container
+  command: pct exec {{ item }} -- apt -y autoremove && apt autoclean
+  loop: "{{ lxc_containers }}"
+
+- name: Ensure services are running inside LXC container
+  command: pct exec {{ item }} -- systemctl is-active {{ item }} || systemctl start {{ item }}
   loop: "{{ lxc_containers }}"
 
 # Full System Upgrade Logic
@@ -29,13 +20,11 @@
   register: current_day
 
 - name: Perform full system upgrade if today is the first day of the month
-  apt:
-    upgrade: dist
-    autoremove: yes
+  command: pct exec {{ item }} -- apt -y dist-upgrade && apt autoremove
   when: current_day.stdout == "01"
   retries: 3
   delay: 5
-  until: result is succeeded
+  loop: "{{ lxc_containers }}"
 
 # Add the cron job for Plex cache cleanup
 - name: Ensure Plex cache cleanup cron job is present
@@ -43,6 +32,5 @@
     name: "Plex Cache Cleanup"
     minute: "0"
     hour: "2"
-    job: "rm -rf /var/lib/plexmediaserver/Library/Application\\ Support/Plex\\ Media\\ Server/Cache/*"
+    job: "pct exec 101 -- rm -rf /var/lib/plexmediaserver/Library/Application\\ Support/Plex\\ Media\\ Server/Cache/*"
     user: root
-  delegate_to: "{{ plex_container_hostname }}"

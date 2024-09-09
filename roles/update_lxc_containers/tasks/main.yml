@@ -1,23 +1,30 @@
-- name: Update APT cache inside LXC container {{ item.key }}
+- name: Update APT cache inside LXC containers
   command: pct exec {{ item.value }} -- apt update
   loop: "{{ lxc_containers | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
 
-- name: Upgrade specified packages inside LXC container {{ item.key }}
+- name: Upgrade specified packages inside LXC containers
   command: pct exec {{ item.value }} -- apt -y upgrade
   loop: "{{ lxc_containers | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
 
-- name: Clean up unnecessary packages inside LXC container {{ item.key }}
-  command: pct exec {{ item.value }} -- apt -y autoremove && apt autoclean
+- name: Ensure correct ownership for Plex directory
+  command: pct exec {{ item.value }} -- chown -R plex:plex /var/lib/plexmediaserver/
+  loop: "{{ lxc_containers | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  when: item.key == 'plexmediaserver'
+
+- name: Clean up unnecessary packages inside LXC containers
+  command: pct exec {{ item.value }} -- bash -c "apt -y autoremove && apt autoclean"
   loop: "{{ lxc_containers | dict2items }}"
   loop_control:
     label: "{{ item.key }}"
 
-- name: Ensure services are running inside LXC container
-  command: pct exec {{ item.value }} -- systemctl is-active {{ item.key }} || systemctl start {{ item.key }}
+- name: Ensure services are running inside LXC containers
+  command: pct exec {{ item.value }} -- bash -c "systemctl is-active {{ item.key }} || (systemctl start {{ item.key }} && systemctl is-active {{ item.key }})"
   loop: "{{ lxc_containers | dict2items }}"
   loop_control:
     label: "{{ item.key }}"

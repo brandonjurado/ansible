@@ -2,7 +2,7 @@
   vars_files:
     - vault.yml
   roles:
-    - snapshot_lxc_containers
+    # - snapshot_lxc_containers # snapshot feature is not available
     - update_lxc_containers
 
   tasks:
@@ -19,7 +19,10 @@
         status_code: 204
       when: ansible_failed_result is defined
 
-    - name: Rollback to previous snapshot on failure
-      command: pct snapshot {{ item }} rollback pre_update
-      when: ansible_failed_result is defined
-      loop: "{{ lxc_containers }}"
+    ## Disabled as snapshot feature is not available
+    # - name: Rollback to previous snapshot on failure
+    #   command: pct snapshot {{ item.value }} rollback pre_update
+    #   when: ansible_failed_result is defined
+    #   loop: "{{ lxc_containers | dict2items }}"
+    #   loop_control:
+    #     label: "{{ item.key }}"

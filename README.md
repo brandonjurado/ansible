@@ -12,6 +12,5 @@ Required on the host machine:
 
 #### Secrets
 
-- `TAILSCALE_AUTHKEY` - Ephemeral authentication key for Tailscale using a `ci` tag that has SSH configured in your ACL
-
-_TODO: Use OAuth instead of Authkey for Tailscale_
+- `TAILSCALE_OAUTH_ID`
+- `TAILSCALE_OAUTH_SECRET`
